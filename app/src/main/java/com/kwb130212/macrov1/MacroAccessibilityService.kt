@@ -41,14 +41,14 @@ class MacroAccessibilityService:AccessibilityService(){
  private fun removeCapture(){capture?.let{try{getSystemService(WindowManager::class.java)?.removeView(it)}catch(_:Exception){}};capture=null}
  private fun scheduleNext(delay:Long){if(!running)return;main.postDelayed({if(!running||points.isEmpty())return@postDelayed;val p=points[index%points.size];index++;tap(p)},delay.coerceAtLeast(0))}
  private fun tap(p:TapPoint){
-  val path=Path().apply{moveTo(p.x.toFloat(),p.y.toFloat())};val stroke=GestureDescription.StrokeDescription(path,0,35)
-  val ok=try{dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(),null,main)}catch(_:RuntimeException){false}
+  val path=Path().apply{moveTo(p.x.toFloat(),p.y.toFloat())};val stroke=GestureDescription.StrokeDescription(path,0,1)
+  val ok=try{dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(),object:GestureResultCallback(){override fun onCompleted(g:GestureDescription){if(running)scheduleNext(p.delayMs.coerceAtLeast(1))};override fun onCancelled(g:GestureDescription){if(running){running=false;updateIndicator(false);notifyWebhook("gesture_cancelled",true)}}},main)}catch(_:RuntimeException){false}
   if(!ok){running=false;updateIndicator(false);notifyWebhook("gesture_dispatch_failed",true);return}
-  total++;val prefs=getSharedPreferences("macro",0);if(running&&prefs.getBoolean("webhookTicks",false)&&total%100==0)notifyWebhook("macro_progress");if(running)scheduleNext(p.delayMs.coerceAtLeast(20))
+  total++;val prefs=getSharedPreferences("macro",0);if(running&&prefs.getBoolean("webhookTicks",false)&&total%100==0)notifyWebhook("macro_progress");
  }
  private fun loadConfig(){
   val p=getSharedPreferences("macro",Context.MODE_PRIVATE);targetPackage=p.getString("targetPackage","")?.trim().orEmpty();webhook=p.getString("webhook","")?.trim().orEmpty()
-  points=p.getString("points","").orEmpty().split(";").mapNotNull{a->val q=a.split(",");if(q.size!=3)return@mapNotNull null;val x=q[0].toIntOrNull()?:return@mapNotNull null;val y=q[1].toIntOrNull()?:return@mapNotNull null;val d=q[2].toLongOrNull()?:return@mapNotNull null;if(x<0||y<0||d<20)null else TapPoint(x,y,d)}
+  points=p.getString("points","").orEmpty().split(";").mapNotNull{a->val q=a.split(",");if(q.size!=3)return@mapNotNull null;val x=q[0].toIntOrNull()?:return@mapNotNull null;val y=q[1].toIntOrNull()?:return@mapNotNull null;val d=q[2].toLongOrNull()?:return@mapNotNull null;if(x<0||y<0||d<1)null else TapPoint(x,y,d)}
  }
  private fun showIndicator(){
   if(overlay!=null)return
