@@ -8,6 +8,10 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.*
 import java.util.Locale
 
@@ -20,16 +24,21 @@ class MainActivity:Activity(){
  private lateinit var pkg:EditText
  private lateinit var interval:EditText
  private lateinit var webhook:EditText
+ private lateinit var web:WebView
  private val points=mutableListOf<TapPoint>()
  private val main=Handler(Looper.getMainLooper())
 
  override fun onCreate(b:Bundle?){super.onCreate(b);ui();load();watchCapture()}
- override fun onDestroy(){main.removeCallbacksAndMessages(null);super.onDestroy()}
+ override fun onDestroy(){main.removeCallbacksAndMessages(null);web.destroy();super.onDestroy()}
 
  private fun ui(){
   val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(24,20,24,20);setBackgroundColor(Color.rgb(15,15,20))}
   fun t(s:String,z:Float=16f)=TextView(this).apply{text=s;textSize=z;setTextColor(Color.WHITE);setPadding(0,8,0,8)}
   root.addView(t("매크로v1.2",28f));root.addView(t("백지헌의 캣히어로 매크로",18f));status=t("● 대기",14f);root.addView(status)
+  root.addView(Button(this).apply{text="Cat Hero 웹 매크로 열기";setOnClickListener{openCatHero()}})
+  root.addView(Button(this).apply{text="WebView를 매크로 대상으로 지정";setOnClickListener{pkg.setText(packageName);save();toast("이 앱의 WebView를 대상으로 지정했습니다.")}})
+  web=WebView(this).apply{settings.javaScriptEnabled=true;settings.domStorageEnabled=true;settings.cacheMode=WebSettings.LOAD_DEFAULT;webViewClient=WebViewClient();webChromeClient=WebChromeClient();layoutParams=LinearLayout.LayoutParams(-1,(420*resources.displayMetrics.density).toInt()).apply{topMargin=8;bottomMargin=8}}
+  root.addView(web)
   pkg=EditText(this).apply{hint="대상 게임 패키지";setTextColor(Color.WHITE);setHintTextColor(Color.GRAY);setSingleLine(true)}
   interval=EditText(this).apply{hint="기본 간격(ms) — 최소 20";inputType=2;setTextColor(Color.WHITE);setHintTextColor(Color.GRAY);setSingleLine(true)}
   webhook=EditText(this).apply{hint="웹훅 URL (선택, HTTPS만)";setTextColor(Color.WHITE);setHintTextColor(Color.GRAY);setSingleLine(true)}
@@ -47,6 +56,8 @@ class MainActivity:Activity(){
   root.addView(Button(this).apply{text="매크로 정지";setOnClickListener{MacroAccessibilityService.instance?.stopMacro();status()}})
   setContentView(ScrollView(this).apply{addView(root)});updateWebhookStatus()
  }
+
+ private fun openCatHero(){pkg.setText(packageName);save();web.loadUrl("https://cathero.gv.gameduo.net/mobile/index.html");toast("Cat Hero를 앱 내부 WebView에서 엽니다. 로그인 후 좌표를 설정하세요.")}
 
  private fun webhookDialog(){
   val l=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(32,8,32,8)}
