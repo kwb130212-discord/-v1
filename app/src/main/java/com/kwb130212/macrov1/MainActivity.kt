@@ -4,6 +4,8 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -37,70 +39,110 @@ class MainActivity:Activity(){
  override fun onDestroy(){exitFullscreen();main.removeCallbacksAndMessages(null);web.stopLoading();web.destroy();super.onDestroy()}
 
  private fun ui(){
-  window.statusBarColor=Color.rgb(12,13,18);window.navigationBarColor=Color.rgb(12,13,18)
-  val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(14),dp(18),dp(24));setBackgroundColor(Color.rgb(12,13,18))}
-  fun title(s:String,z:Float)=TextView(this).apply{text=s;textSize=z;setTextColor(Color.WHITE);setPadding(0,dp(3),0,dp(3))}
-  fun button(s:String,action:()->Unit)=Button(this).apply{text=s;isAllCaps=false;setOnClickListener{action()}}
-  fun section(s:String)=TextView(this).apply{text=s;textSize=13f;setTextColor(Color.rgb(170,175,190));setPadding(0,dp(14),0,dp(5))}
-  root.addView(title("Macro V1.3",26f));root.addView(title("Cat Hero 자동화",15f))
-  status=title("● 대기",13f).apply{setTextColor(Color.rgb(160,170,185))};root.addView(status)
-  root.addView(section("GAME"))
+  window.statusBarColor=Color.rgb(9,10,13);window.navigationBarColor=Color.rgb(9,10,13)
+  fun bg(color:Int,r:Float=18f)=GradientDrawable().apply{setColor(color);cornerRadius=dp(r)}
+  fun text(s:String,size:Float,color:Int=Color.WHITE,bold:Boolean=false)=TextView(this).apply{
+   this.text=s;textSize=size;setTextColor(color);setPadding(0,dp(2),0,dp(2));if(bold)typeface=Typeface.DEFAULT_BOLD
+  }
+  fun button(s:String,action:()->Unit)=Button(this).apply{
+   this.text=s;isAllCaps=false;textSize=14f;setTextColor(Color.rgb(239,242,247));typeface=Typeface.DEFAULT_BOLD
+   background=bg(Color.rgb(30,33,42),14f);setPadding(dp(12),0,dp(12),0);minHeight=dp(48);stateListAnimator=null
+   setOnClickListener{action()}
+  }
+  fun section(s:String)=text(s,12f,Color.rgb(128,136,153),true).apply{setPadding(dp(2),dp(18),0,dp(8))}
+  fun card():LinearLayout=LinearLayout(this).apply{
+   orientation=LinearLayout.VERTICAL;setPadding(dp(16),dp(14),dp(16),dp(14));background=bg(Color.rgb(18,20,27),18f)
+   layoutParams=LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(10)}
+  }
+  val scroll=ScrollView(this).apply{setBackgroundColor(Color.rgb(9,10,13));isFillViewport=true}
+  val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(16),dp(12),dp(16),dp(28))}
+  val head=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL}
+  val brand=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
+  brand.addView(text("MACRO V1",25f,Color.WHITE,true))
+  brand.addView(text("빠르고 단순하게 · 필요한 것만",12f,Color.rgb(133,140,155)))
+  head.addView(brand,LinearLayout.LayoutParams(0,-2,1f))
+  status=text("● 대기",12f,Color.rgb(148,157,174),true).apply{gravity=Gravity.CENTER;setPadding(dp(12),dp(8),dp(12),dp(8));background=bg(Color.rgb(28,31,40),30f)}
+  head.addView(status)
+  root.addView(head);root.addView(text("좌표 기반 자동화 도구",13f,Color.rgb(111,119,136)).apply{setPadding(0,dp(2),0,dp(12))})
+
+  root.addView(section("게임"))
+  val game=card()
+  val gameTitle=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
+  gameTitle.addView(text("Cat Hero",19f,Color.WHITE,true))
+  gameTitle.addView(text("게임 화면을 여기서 열고 바로 설정할 수 있습니다.",12f,Color.rgb(137,144,158)))
+  game.addView(gameTitle)
   web=WebView(this).apply{
    settings.javaScriptEnabled=true;settings.domStorageEnabled=true;settings.databaseEnabled=true
-   settings.cacheMode=WebSettings.LOAD_DEFAULT
-   settings.mixedContentMode=WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+   settings.cacheMode=WebSettings.LOAD_DEFAULT;settings.mixedContentMode=WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
    settings.userAgentString=settings.userAgentString+" MacroV1/1.3"
    webViewClient=object:WebViewClient(){
-    override fun onPageStarted(v:WebView?,url:String?,favicon:android.graphics.Bitmap?){
-     super.onPageStarted(v,url,favicon);showLoading("페이지 로딩 중…");loadTimeout=false
-     main.removeCallbacksAndMessages("web_timeout")
-     main.postAtTime({
-      if(!isFinishing&&web.progress<95){loadTimeout=true;showLoading("응답이 지연되고 있습니다.");Toast.makeText(this@MainActivity,"페이지 응답이 오래 걸립니다. 새로고침을 눌러주세요.",Toast.LENGTH_LONG).show()}
-     },"web_timeout",18000)
-    }
+    override fun onPageStarted(v:WebView?,url:String?,favicon:android.graphics.Bitmap?){super.onPageStarted(v,url,favicon);showLoading("페이지 불러오는 중…");loadTimeout=false;main.removeCallbacksAndMessages("web_timeout");main.postAtTime({if(!isFinishing&&web.progress<95){loadTimeout=true;showLoading("응답이 지연되고 있습니다.");toast("페이지 응답이 오래 걸립니다. 새로고침을 눌러주세요.")}},"web_timeout",18000)}
     override fun onPageFinished(v:WebView?,url:String?){super.onPageFinished(v,url);main.removeCallbacksAndMessages("web_timeout");loadTimeout=false;hideLoading()}
     override fun onReceivedError(v:WebView?,request:WebResourceRequest?,error:WebResourceError?){super.onReceivedError(v,request,error);if(request?.isForMainFrame==true){main.removeCallbacksAndMessages("web_timeout");showLoading("페이지를 불러오지 못했습니다.")}}
    }
    webChromeClient=object:WebChromeClient(){
     override fun onProgressChanged(v:WebView?,newProgress:Int){super.onProgressChanged(v,newProgress);this@MainActivity.progress.progress=newProgress;if(newProgress>=95&&!loadTimeout)hideLoading()}
-    override fun onShowCustomView(view:View?,callback:CustomViewCallback?){
-     if(view==null)return
-     if(customView!=null){callback?.onCustomViewHidden();return}
-     customView=view;customCallback=callback
-     (web.parent as? ViewGroup)?.removeView(web)
-     addContentView(view,ViewGroup.LayoutParams(-1,-1));enterImmersive()
-    }
+    override fun onShowCustomView(view:View?,callback:CustomViewCallback?){if(view==null)return;if(customView!=null){callback?.onCustomViewHidden();return};customView=view;customCallback=callback;(web.parent as? ViewGroup)?.removeView(web);addContentView(view,ViewGroup.LayoutParams(-1,-1));enterImmersive()}
     override fun onHideCustomView(){exitFullscreen()}
    }
-   layoutParams=LinearLayout.LayoutParams(-1,dp(360))
+   layoutParams=LinearLayout.LayoutParams(-1,dp(330)).apply{topMargin=dp(12)}
   }
-  root.addView(web)
-  val loading=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;setPadding(dp(10),dp(6),dp(10),dp(6));setBackgroundColor(Color.rgb(27,29,38))}
+  game.addView(web)
+  val loading=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;setPadding(dp(8),dp(8),dp(8),dp(4))}
   progress=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;progress=0}
-  loadText=title("준비 중…",12f)
-  loading.addView(progress,LinearLayout.LayoutParams(0,dp(4),1f));loading.addView(loadText,LinearLayout.LayoutParams(dp(125),-2).apply{leftMargin=dp(10)})
-  root.addView(loading);loading.visibility=View.GONE
+  loadText=text("준비 중…",11f,Color.rgb(146,153,168));loading.addView(progress,LinearLayout.LayoutParams(0,dp(4),1f));loading.addView(loadText,LinearLayout.LayoutParams(dp(125),-2).apply{leftMargin=dp(10)})
+  game.addView(loading);loading.visibility=View.GONE
   val gameRow=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL}
-  gameRow.addView(button("Cat Hero 열기"){openCatHero()},LinearLayout.LayoutParams(0,-2,1f))
-  gameRow.addView(button("새로고침"){web.reload()},LinearLayout.LayoutParams(0,-2,1f));root.addView(gameRow)
-  root.addView(button("Google/Chrome 전체화면"){enterImmersive()})
-  root.addView(section("MACRO"))
-  pkg=field("대상 패키지");interval=field("기본 간격(ms)").apply{inputType=2};webhook=field("웹훅 URL · 선택 / HTTPS")
-  root.addView(pkg);root.addView(interval);root.addView(webhook)
-  webhookStatus=title("",12f);root.addView(webhookStatus)
-  root.addView(button("좌표 추가"){addPointDialog()});root.addView(button("터치로 좌표 설정"){capturePoint()});root.addView(button("전체 좌표 삭제"){points.clear();refresh()})
-  box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL};root.addView(box)
-  root.addView(section("CONTROL"))
-  val control=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL}
-  control.addView(button("▶ 시작"){save();if(points.isEmpty()){toast("좌표를 1개 이상 추가하세요.");return@button};MacroAccessibilityService.instance?.let{it.startMacro();status()}?:run{toast("접근성 서비스를 먼저 켜세요.");startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))}},LinearLayout.LayoutParams(0,-2,1f))
-  control.addView(button("■ 정지"){MacroAccessibilityService.instance?.stopMacro();status()},LinearLayout.LayoutParams(0,-2,1f));root.addView(control)
-  root.addView(button("접근성 설정 열기"){startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))})
-  root.addView(button("설정 저장"){save();toast("설정이 저장되었습니다.")})
-  root.addView(button("웹훅 고급 설정"){webhookDialog()})
-  root.addView(button("웹훅 테스트"){save();MacroAccessibilityService.instance?.testWebhook()?:toast("접근성 서비스를 먼저 켜세요.")})
-  setContentView(ScrollView(this).apply{addView(root)});updateWebhookStatus()
- }
- private fun field(h:String)=EditText(this).apply{hint=h;setTextColor(Color.WHITE);setHintTextColor(Color.rgb(120,125,140));setSingleLine(true);setPadding(dp(12),0,dp(12),0);setBackgroundColor(Color.rgb(25,27,35));layoutParams=LinearLayout.LayoutParams(-1,dp(48)).apply{bottomMargin=dp(7)}}
+  gameRow.addView(button("게임 열기"){openCatHero()},LinearLayout.LayoutParams(0,dp(48),1f))
+  gameRow.addView(Space(this),LinearLayout.LayoutParams(dp(8),1))
+  gameRow.addView(button("새로고침"){web.reload()},LinearLayout.LayoutParams(0,dp(48),1f));game.addView(gameRow)
+  game.addView(button("전체화면으로 보기"){enterImmersive()}.apply{layoutParams=LinearLayout.LayoutParams(-1,dp(44)).apply{topMargin=dp(8)}})
+  root.addView(game)
+
+  root.addView(section("자동화 설정"))
+  val config=card()
+  config.addView(text("실행 대상",16f,Color.WHITE,true))
+  pkg=field("대상 패키지");config.addView(pkg)
+  interval=field("기본 간격(ms)").apply{inputType=2};config.addView(interval)
+  config.addView(text("웹훅 주소 · 선택사항",13f,Color.rgb(153,160,173)).apply{setPadding(0,dp(8),0,dp(4))})
+  webhook=field("HTTPS 주소를 입력하세요");config.addView(webhook)
+  webhookStatus=text("",11f,Color.rgb(137,144,158));config.addView(webhookStatus)
+  root.addView(config)
+
+  root.addView(section("좌표 목록"))
+  val pointsCard=card()
+  pointsCard.addView(text("터치 순서를 그대로 재생합니다.",12f,Color.rgb(137,144,158)))
+  val pointButtons=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL}
+  pointButtons.addView(button("＋ 좌표 추가"){addPointDialog()},LinearLayout.LayoutParams(0,dp(46),1f))
+  pointButtons.addView(Space(this),LinearLayout.LayoutParams(dp(7),1))
+  pointButtons.addView(button("화면에서 선택"){capturePoint()},LinearLayout.LayoutParams(0,dp(46),1f))
+  pointsCard.addView(pointButtons)
+  pointsCard.addView(button("모든 좌표 지우기"){points.clear();refresh()}.apply{layoutParams=LinearLayout.LayoutParams(-1,dp(44)).apply{topMargin=dp(7)}})
+  box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(0,dp(8),0,0)};pointsCard.addView(box)
+  root.addView(pointsCard)
+
+  root.addView(section("실행"))
+  val control=card()
+  val runRow=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL}
+  val start=button("▶  시작"){save();if(points.isEmpty()){toast("좌표를 1개 이상 추가하세요.");return@button};MacroAccessibilityService.instance?.let{it.startMacro();status()}?:run{toast("접근성 서비스를 먼저 켜세요.");startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))}}
+  start.background=bg(Color.rgb(46,76,59),14f)
+  val stop=button("■  정지"){MacroAccessibilityService.instance?.stopMacro();status()}
+  stop.background=bg(Color.rgb(65,40,43),14f)
+  runRow.addView(start,LinearLayout.LayoutParams(0,dp(52),1f));runRow.addView(Space(this),LinearLayout.LayoutParams(dp(8),1));runRow.addView(stop,LinearLayout.LayoutParams(0,dp(52),1f));control.addView(runRow)
+  control.addView(button("접근성 설정 열기"){startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))}.apply{layoutParams=LinearLayout.LayoutParams(-1,dp(44)).apply{topMargin=dp(8)}})
+  control.addView(button("설정 저장"){save();toast("설정을 저장했습니다.")}.apply{layoutParams=LinearLayout.LayoutParams(-1,dp(44)).apply{topMargin=dp(7)}})
+  root.addView(control)
+
+  root.addView(section("웹훅"))
+  val hook=card()
+  hook.addView(text("실행 기록을 외부 서버로 보낼 수 있습니다.",12f,Color.rgb(137,144,158)))
+  hook.addView(button("웹훅 세부 설정"){webhookDialog()}.apply{layoutParams=LinearLayout.LayoutParams(-1,dp(46)).apply{topMargin=dp(8)}})
+  hook.addView(button("연결 테스트"){save();MacroAccessibilityService.instance?.testWebhook()?:toast("접근성 서비스를 먼저 켜세요.")}.apply{layoutParams=LinearLayout.LayoutParams(-1,dp(46)).apply{topMargin=dp(7)}})
+  root.addView(hook)
+
+  root.addView(text("Macro V1  ·  설정은 이 기기에 저장됩니다.",11f,Color.rgb(82,89,104)).apply{gravity=Gravity.CENTER;setPadding(0,dp(12),0,0)})
+  scroll.addView(root);setContentView(scroll);updateWebhookStatus()
+ } private fun field(h:String)=EditText(this).apply{hint=h;setTextColor(Color.WHITE);setHintTextColor(Color.rgb(100,108,122));setSingleLine(true);textSize=14f;setPadding(dp(12),0,dp(12),0);background=GradientDrawable().apply{setColor(Color.rgb(24,27,35));cornerRadius=dp(12f)};layoutParams=LinearLayout.LayoutParams(-1,dp(48)).apply{topMargin=dp(7)}}
  private fun openCatHero(){pkg.setText(packageName);save();showLoading("Cat Hero 연결 중…");web.loadUrl("https://cathero.gv.gameduo.net/mobile/index.html")}
  private fun enterImmersive(){window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE}
  private fun exitFullscreen(){customCallback?.onCustomViewHidden();customCallback=null;customView?.let{v->(v.parent as? ViewGroup)?.removeView(v)};customView=null;window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_LAYOUT_STABLE}
