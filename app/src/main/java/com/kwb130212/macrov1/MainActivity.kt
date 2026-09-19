@@ -11,6 +11,8 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.*
@@ -34,6 +36,7 @@ class MainActivity:Activity(){
  private var loadTimeout=false
  private var customView:View?=null
  private var customCallback:WebChromeClient.CustomViewCallback?=null
+ private var immersive=false
 
  override fun onCreate(b:Bundle?){super.onCreate(b);ui();load();watchCapture()}
  override fun onDestroy(){exitFullscreen();main.removeCallbacksAndMessages(null);web.stopLoading();web.destroy();super.onDestroy()}
@@ -80,6 +83,12 @@ class MainActivity:Activity(){
     override fun onPageFinished(v:WebView?,url:String?){super.onPageFinished(v,url);main.removeCallbacksAndMessages("web_timeout");loadTimeout=false;hideLoading()}
     override fun onReceivedError(v:WebView?,request:WebResourceRequest?,error:WebResourceError?){super.onReceivedError(v,request,error);if(request?.isForMainFrame==true){main.removeCallbacksAndMessages("web_timeout");showLoading("페이지를 불러오지 못했습니다.")}}
    }
+   setOnTouchListener(object:View.OnTouchListener{
+    private val detector=GestureDetector(this@MainActivity,object:GestureDetector.SimpleOnGestureListener(){
+     override fun onDoubleTap(e:MotionEvent):Boolean{toggleImmersive();return true}
+    })
+    override fun onTouch(v:View?,event:MotionEvent?):Boolean{if(event!=null)detector.onTouchEvent(event);return false}
+   })
    webChromeClient=object:WebChromeClient(){
     override fun onProgressChanged(v:WebView?,newProgress:Int){super.onProgressChanged(v,newProgress);this@MainActivity.progress.progress=newProgress;if(newProgress>=95&&!loadTimeout)hideLoading()}
     override fun onShowCustomView(view:View?,callback:CustomViewCallback?){if(view==null)return;if(customView!=null){callback?.onCustomViewHidden();return};customView=view;customCallback=callback;(web.parent as? ViewGroup)?.removeView(web);addContentView(view,ViewGroup.LayoutParams(-1,-1));enterImmersive()}
@@ -144,9 +153,11 @@ class MainActivity:Activity(){
   scroll.addView(root);setContentView(scroll);updateWebhookStatus()
  } private fun field(h:String)=EditText(this).apply{hint=h;setTextColor(Color.WHITE);setHintTextColor(Color.rgb(100,108,122));setSingleLine(true);textSize=14f;setPadding(dp(12),0,dp(12),0);background=GradientDrawable().apply{setColor(Color.rgb(24,27,35));cornerRadius=dp(12f).toFloat()};layoutParams=LinearLayout.LayoutParams(-1,dp(48)).apply{topMargin=dp(7)}}
  private fun openCatHero(){pkg.setText(packageName);save();showLoading("Cat Hero 연결 중…");web.loadUrl("https://cathero.gv.gameduo.net/mobile/index.html")}
- private fun enterImmersive(){window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE}
- private fun exitFullscreen(){customCallback?.onCustomViewHidden();customCallback=null;customView?.let{v->(v.parent as? ViewGroup)?.removeView(v)};customView=null;window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_LAYOUT_STABLE}
- override fun onBackPressed(){if(customView!=null){exitFullscreen();return};if(web.canGoBack()){web.goBack();return};super.onBackPressed()}
+ private fun toggleImmersive(){if(immersive)exitImmersive()else enterImmersive()}
+ private fun enterImmersive(){immersive=true;window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE}
+ private fun exitImmersive(){immersive=false;window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_LAYOUT_STABLE}
+ private fun exitFullscreen(){customCallback?.onCustomViewHidden();customCallback=null;customView?.let{v->(v.parent as? ViewGroup)?.removeView(v)};customView=null;exitImmersive()}
+ override fun onBackPressed(){if(customView!=null){exitFullscreen();return};if(immersive){exitImmersive();return};if(web.canGoBack()){web.goBack();return};super.onBackPressed()}
  private fun showLoading(s:String){if(!::loadText.isInitialized)return;loadText.text=s;progress.visibility=View.VISIBLE;loadText.visibility=View.VISIBLE}
  private fun hideLoading(){if(!::loadText.isInitialized)return;progress.visibility=View.GONE;loadText.text="연결됨"}
  private fun webhookDialog(){
