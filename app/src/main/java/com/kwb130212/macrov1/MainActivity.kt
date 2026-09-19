@@ -40,7 +40,7 @@ class MainActivity:Activity(){
 
  private fun ui(){
   window.statusBarColor=Color.rgb(9,10,13);window.navigationBarColor=Color.rgb(9,10,13)
-  fun bg(color:Int,r:Float=18f)=GradientDrawable().apply{setColor(color);cornerRadius=dp(r)}
+  fun bg(color:Int,r:Float=18f)=GradientDrawable().apply{setColor(color);cornerRadius=dp(r).toFloat()}
   fun text(s:String,size:Float,color:Int=Color.WHITE,bold:Boolean=false)=TextView(this).apply{
    this.text=s;textSize=size;setTextColor(color);setPadding(0,dp(2),0,dp(2));if(bold)typeface=Typeface.DEFAULT_BOLD
   }
@@ -142,7 +142,7 @@ class MainActivity:Activity(){
 
   root.addView(text("Macro V1  ·  설정은 이 기기에 저장됩니다.",11f,Color.rgb(82,89,104)).apply{gravity=Gravity.CENTER;setPadding(0,dp(12),0,0)})
   scroll.addView(root);setContentView(scroll);updateWebhookStatus()
- } private fun field(h:String)=EditText(this).apply{hint=h;setTextColor(Color.WHITE);setHintTextColor(Color.rgb(100,108,122));setSingleLine(true);textSize=14f;setPadding(dp(12),0,dp(12),0);background=GradientDrawable().apply{setColor(Color.rgb(24,27,35));cornerRadius=dp(12f)};layoutParams=LinearLayout.LayoutParams(-1,dp(48)).apply{topMargin=dp(7)}}
+ } private fun field(h:String)=EditText(this).apply{hint=h;setTextColor(Color.WHITE);setHintTextColor(Color.rgb(100,108,122));setSingleLine(true);textSize=14f;setPadding(dp(12),0,dp(12),0);background=GradientDrawable().apply{setColor(Color.rgb(24,27,35));cornerRadius=dp(12f).toFloat()};layoutParams=LinearLayout.LayoutParams(-1,dp(48)).apply{topMargin=dp(7)}}
  private fun openCatHero(){pkg.setText(packageName);save();showLoading("Cat Hero 연결 중…");web.loadUrl("https://cathero.gv.gameduo.net/mobile/index.html")}
  private fun enterImmersive(){window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE}
  private fun exitFullscreen(){customCallback?.onCustomViewHidden();customCallback=null;customView?.let{v->(v.parent as? ViewGroup)?.removeView(v)};customView=null;window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_LAYOUT_STABLE}
