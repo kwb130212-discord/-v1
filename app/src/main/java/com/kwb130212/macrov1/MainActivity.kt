@@ -27,6 +27,7 @@ class MainActivity:Activity(){
  private lateinit var webhookStatus:TextView
  private lateinit var pkg:EditText
  private lateinit var interval:EditText
+ private lateinit var turbo:CheckBox
  private lateinit var webhook:EditText
  private lateinit var web:WebView
  private lateinit var progress:ProgressBar
@@ -113,6 +114,7 @@ class MainActivity:Activity(){
   config.addView(text("실행 대상",16f,Color.WHITE,true))
   pkg=field("대상 패키지");config.addView(pkg)
   interval=field("기본 간격(ms) · 1ms까지").apply{inputType=2};config.addView(interval)
+  turbo=CheckBox(this).apply{text="초고속 모드 · 터치 묶음 전송";setTextColor(Color.WHITE);textSize=13f;isChecked=true};config.addView(turbo)
   config.addView(text("웹훅 주소 · 선택사항",13f,Color.rgb(153,160,173)).apply{setPadding(0,dp(8),0,dp(4))})
   webhook=field("HTTPS 주소를 입력하세요");config.addView(webhook)
   webhookStatus=text("",11f,Color.rgb(137,144,158));config.addView(webhookStatus)
@@ -183,10 +185,10 @@ class MainActivity:Activity(){
  private fun editPoint(i:Int){
   val p=points[i];val l=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(28),dp(8),dp(28),dp(8))}
   val x=fieldInDialog("X").apply{setText(p.x.toString())};val y=fieldInDialog("Y").apply{setText(p.y.toString())};val d=fieldInDialog("대기(ms)").apply{setText(p.delayMs.toString())};l.addView(x);l.addView(y);l.addView(d)
-  AlertDialog.Builder(this).setTitle("좌표 편집").setView(l).setPositiveButton("저장"){_,_->val nx=x.text.toString().toIntOrNull();val ny=y.text.toString().toIntOrNull();val nd=d.text.toString().toLongOrNull();if(nx==null||ny==null||nd==null||nx<0||ny<0||nd<20)toast("값이 올바르지 않습니다.")else{points[i]=TapPoint(nx,ny,nd);refresh()}}.setNegativeButton("취소",null).setNeutralButton("1회 테스트"){_,_->MacroAccessibilityService.instance?.testPoint(p)?:toast("접근성 서비스를 먼저 켜세요.")}.show()
+  AlertDialog.Builder(this).setTitle("좌표 편집").setView(l).setPositiveButton("저장"){_,_->val nx=x.text.toString().toIntOrNull();val ny=y.text.toString().toIntOrNull();val nd=d.text.toString().toLongOrNull();if(nx==null||ny==null||nd==null||nx<0||ny<0||nd<1)toast("값이 올바르지 않습니다.")else{points[i]=TapPoint(nx,ny,nd);refresh()}}.setNegativeButton("취소",null).setNeutralButton("1회 테스트"){_,_->MacroAccessibilityService.instance?.testPoint(p)?:toast("접근성 서비스를 먼저 켜세요.")}.show()
  }
- private fun save(){getSharedPreferences("macro",0).edit().putString("targetPackage",pkg.text.toString().trim()).putLong("interval",interval.text.toString().toLongOrNull()?.coerceAtLeast(20L)?:100L).putString("webhook",webhook.text.toString().trim()).putString("points",points.joinToString(";"){p -> "${p.x},${p.y},${p.delayMs}"}).apply();updateWebhookStatus()}
- private fun load(){val p=getSharedPreferences("macro",0);pkg.setText(p.getString("targetPackage",""));interval.setText(p.getLong("interval",100L).toString());webhook.setText(p.getString("webhook",""));points.clear();p.getString("points","").orEmpty().split(";").forEach{a->val q=a.split(",");if(q.size==3){val x=q[0].toIntOrNull();val y=q[1].toIntOrNull();val d=q[2].toLongOrNull();if(x!=null&&y!=null&&d!=null&&x>=0&&y>=0&&d>=1)points.add(TapPoint(x,y,d))}};refresh();updateWebhookStatus()}
+ private fun save(){getSharedPreferences("macro",0).edit().putString("targetPackage",pkg.text.toString().trim()).putLong("interval",interval.text.toString().toLongOrNull()?.coerceAtLeast(1L)?:10L).putBoolean("turbo",turbo.isChecked).putString("webhook",webhook.text.toString().trim()).putString("points",points.joinToString(";"){p -> "${p.x},${p.y},${p.delayMs}"}).apply();updateWebhookStatus()}
+ private fun load(){val p=getSharedPreferences("macro",0);pkg.setText(p.getString("targetPackage",""));interval.setText(p.getLong("interval",10L).coerceAtLeast(1L).toString());turbo.isChecked=p.getBoolean("turbo",true);webhook.setText(p.getString("webhook",""));points.clear();p.getString("points","").orEmpty().split(";").forEach{a->val q=a.split(",");if(q.size==3){val x=q[0].toIntOrNull();val y=q[1].toIntOrNull();val d=q[2].toLongOrNull();if(x!=null&&y!=null&&d!=null&&x>=0&&y>=0&&d>=1)points.add(TapPoint(x,y,d))}};refresh();updateWebhookStatus()}
  private fun status(){status.text=if(MacroAccessibilityService.instance?.running==true)"● 실행 중" else "● 대기"}
  private fun toast(s:String)=Toast.makeText(this,s,Toast.LENGTH_SHORT).show()
  private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
