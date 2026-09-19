@@ -62,7 +62,7 @@ class MacroAccessibilityService:AccessibilityService(){
   if(error&&!p.getBoolean("webhookErrors",true))return
   if(!error&&event!="webhook_test"&&!p.getBoolean("webhookEvents",true)&&event!="macro_progress")return
   val u=webhook;if(u.isBlank()||!u.startsWith("https://"))return
-  val payload="{"+ ""event":""+event+"","app":"MacroV1","version":"1.2","timestamp":"+System.currentTimeMillis()+","session":""+session+"","running":"+running+","count":"+total+","points":"+points.size+"}"
+  val payload="""{"event":"$event","app":"MacroV1","version":"1.2","timestamp":${System.currentTimeMillis()},"session":"$session","running":$running,"count":$total,"points":${points.size}}"""
   network.execute{
    for(attempt in 0..2){
     try{
