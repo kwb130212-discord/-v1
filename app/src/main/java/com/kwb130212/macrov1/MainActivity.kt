@@ -179,4 +179,5 @@ class MainActivity:Activity(){
  private fun status(){status.text=if(MacroAccessibilityService.instance?.running==true)"● 실행 중" else "● 대기"}
  private fun toast(s:String)=Toast.makeText(this,s,Toast.LENGTH_SHORT).show()
  private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
+ private fun dp(v:Float)=(v*resources.displayMetrics.density).toInt()
 }
