@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">매크로v1.0</string>
+    <string name="app_name">매크로v1.1</string>
     <string name="accessibility_description">사용자가 설정한 좌표를 반복 입력하는 접근성 자동화 서비스</string>
 </resources>
