@@ -7,11 +7,11 @@ android {
     namespace = "com.kwb130212.macrov1"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.kwb130212.macrov1"
+        applicationId = "com.kwb130212.macrov1.app2026"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.2"
+        versionCode = 13
+        versionName = "1.3"
     }
     buildTypes {
         release {
