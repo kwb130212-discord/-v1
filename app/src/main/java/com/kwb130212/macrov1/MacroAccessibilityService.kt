@@ -24,7 +24,7 @@ class MacroAccessibilityService:AccessibilityService(){
  companion object{@Volatile var instance:MacroAccessibilityService?=null}
  @Volatile var running=false;private set
  private val main=Handler(Looper.getMainLooper());private val network=Executors.newSingleThreadExecutor()
- private var index=0;private var overlay:TextView?=null;private var capture:FrameLayout?=null;private var targetPackage="";private var webhook="";private var points=emptyList<TapPoint>();private var total=0;private var session=""
+ private var index=0;private var overlay:TextView?=null;private var capture:FrameLayout?=null;private var targetPackage="";private var webhook="";private var points=emptyList<TapPoint>();private var total=0;private var session="";private var turbo=true
  override fun onServiceConnected(){super.onServiceConnected();instance=this;loadConfig();showIndicator()}
  override fun onAccessibilityEvent(e:AccessibilityEvent?){if(e?.eventType==AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED&&running&&targetPackage.isNotBlank()&&e.packageName?.toString()!=targetPackage)stopMacro()}
  override fun onInterrupt()=stopMacro()
@@ -39,7 +39,17 @@ class MacroAccessibilityService:AccessibilityService(){
   try{getSystemService(WindowManager::class.java)?.addView(v,lp);capture=v}catch(_:Exception){}
  }
  private fun removeCapture(){capture?.let{try{getSystemService(WindowManager::class.java)?.removeView(it)}catch(_:Exception){}};capture=null}
- private fun scheduleNext(delay:Long){if(!running)return;main.postDelayed({if(!running||points.isEmpty())return@postDelayed;val p=points[index%points.size];index++;tap(p)},delay.coerceAtLeast(0))}
+ private fun scheduleNext(delay:Long){if(!running)return;main.postDelayed({if(!running||points.isEmpty())return@postDelayed;if(turbo)dispatchBatch()else{val p=points[index%points.size];index++;tap(p)}},delay.coerceAtLeast(0))}
+ private fun dispatchBatch(){
+  if(!running||points.isEmpty())return
+  val b=GestureDescription.Builder();var offset=0L;var count=0
+  while(count<16){val p=points[(index+count)%points.size];if(offset>0L&&offset>5000L)break;val path=Path().apply{moveTo(p.x.toFloat(),p.y.toFloat())};b.addStroke(GestureDescription.StrokeDescription(path,offset,1));offset+=1L+p.delayMs.coerceAtLeast(1L);count++}
+  if(count==0)return
+  index=(index+count)%points.size;total+=count
+  val ok=try{dispatchGesture(b.build(),object:GestureResultCallback(){override fun onCompleted(g:GestureDescription){if(running)dispatchBatch()};override fun onCancelled(g:GestureDescription){if(running){running=false;updateIndicator(false);notifyWebhook("gesture_cancelled",true)}}},main)}catch(_:RuntimeException){false}
+  if(!ok){running=false;updateIndicator(false);notifyWebhook("gesture_dispatch_failed",true);return}
+  val prefs=getSharedPreferences("macro",0);if(running&&prefs.getBoolean("webhookTicks",false)&&total%100< count)notifyWebhook("macro_progress")
+ }
  private fun tap(p:TapPoint){
   val path=Path().apply{moveTo(p.x.toFloat(),p.y.toFloat())};val stroke=GestureDescription.StrokeDescription(path,0,1)
   val ok=try{dispatchGesture(GestureDescription.Builder().addStroke(stroke).build(),object:GestureResultCallback(){override fun onCompleted(g:GestureDescription){if(running)scheduleNext(p.delayMs.coerceAtLeast(1))};override fun onCancelled(g:GestureDescription){if(running){running=false;updateIndicator(false);notifyWebhook("gesture_cancelled",true)}}},main)}catch(_:RuntimeException){false}
@@ -47,7 +57,7 @@ class MacroAccessibilityService:AccessibilityService(){
   total++;val prefs=getSharedPreferences("macro",0);if(running&&prefs.getBoolean("webhookTicks",false)&&total%100==0)notifyWebhook("macro_progress");
  }
  private fun loadConfig(){
-  val p=getSharedPreferences("macro",Context.MODE_PRIVATE);targetPackage=p.getString("targetPackage","")?.trim().orEmpty();webhook=p.getString("webhook","")?.trim().orEmpty()
+  val p=getSharedPreferences("macro",Context.MODE_PRIVATE);targetPackage=p.getString("targetPackage","")?.trim().orEmpty();webhook=p.getString("webhook","")?.trim().orEmpty();turbo=p.getBoolean("turbo",true)
   points=p.getString("points","").orEmpty().split(";").mapNotNull{a->val q=a.split(",");if(q.size!=3)return@mapNotNull null;val x=q[0].toIntOrNull()?:return@mapNotNull null;val y=q[1].toIntOrNull()?:return@mapNotNull null;val d=q[2].toLongOrNull()?:return@mapNotNull null;if(x<0||y<0||d<1)null else TapPoint(x,y,d)}
  }
  private fun showIndicator(){
